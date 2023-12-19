@@ -29,6 +29,13 @@ contract UniswapV3Pool {
 
     Slot0 public slot0;
 
+    // Struct for Storing Data for Callbacks
+    struct CallbackData{
+        address token0;
+        address token1;
+        address payer;
+    }
+
     uint128 public liquidity; // Keeping track of amount of Liquidity
 
     // Ticks Info
@@ -63,7 +70,7 @@ contract UniswapV3Pool {
 
 
 
-    function mint(address owner , int24 lowertick , int24 uppertick , uint128 amount) external returns(uint256 amount0 , uint256 amount1){
+    function mint(address owner , int24 lowertick , int24 uppertick , uint128 amount , bytes calldata data) external returns(uint256 amount0 , uint256 amount1){
         if(
             lowertick < MIN_TICK || 
             uppertick > MAX_TICK ||
@@ -94,7 +101,8 @@ contract UniswapV3Pool {
         if(amount0 > 0 ) balance0before = balance0() ;
         if(amount1 > 0) balance1before = balance1();
 
-        IUniswapV3MintCallback(msg.sender).uniswapV3MintCallback(amount0,amount1);
+       IUniswapV3MintCallback(msg.sender).uniswapV3MintCallback(amount0,amount1,data);
+
 
 
         if (amount0 > 0 && balance0before + amount0 > balance0())
@@ -104,44 +112,39 @@ contract UniswapV3Pool {
 
         emit Mint(msg.sender, owner, lowertick, uppertick, amount, amount0, amount1);
 
-
-
-
-
-
-
     }
 
 
     function swap(
-        address recipient
-    ) public returns(int256 amount0 , int256 amount1){
-    int24 nextTick = 85184;
-    uint160 nextPrice = 5604469350942327889444743441197;
+        address recipient , bytes calldata data
+        ) public returns(int256 amount0 , int256 amount1){
+        int24 nextTick = 85184;
+        uint160 nextPrice = 5604469350942327889444743441197;
 
-    amount0 = -0.008396714242162444 ether;
-    amount1 = 42 ether;
+        amount0 = -0.008396714242162444 ether;
+        amount1 = 42 ether;
 
-    (slot0.tick , slot0.sqrtPriceX96) = (nextTick , nextPrice);
+        (slot0.tick , slot0.sqrtPriceX96) = (nextTick , nextPrice);
 
-    IERC20(token0).transfer(recipient, uint256(-amount0));
-    uint256 balance1Before = balance1();
-    IUniswapV3SwapCallback(msg.sender).uniswapV3SwapCallback(
-    amount0,
-    amount1
-);
-    if (balance1Before + uint256(amount1) < balance1())
-        revert InsufficientInputAmount();
-
-    emit Swap(
-        msg.sender,
-        recipient,
-        amount0,
-        amount1,
-        slot0.sqrtPriceX96,
-        liquidity,
-        slot0.tick
+        IERC20(token0).transfer(recipient, uint256(-amount0));
+            uint256 balance1Before = balance1();
+            IUniswapV3SwapCallback(msg.sender).uniswapV3SwapCallback(
+            amount0,
+            amount1,
+            data
     );
+        if (balance1Before + uint256(amount1) < balance1())
+            revert InsufficientInputAmount();
+
+             emit Swap(
+            msg.sender,
+            recipient,
+            amount0,
+            amount1,
+            slot0.sqrtPriceX96,
+            liquidity,
+            slot0.tick
+            );
 
     
 
