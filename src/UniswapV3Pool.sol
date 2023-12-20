@@ -6,6 +6,9 @@ import "./lib/Position.sol";
 import "./interfaces/IERC20.sol";
 import "./interfaces/IUniswapV3MintCallback.sol";
 import "./interfaces/IUniswapV3SwapCallback.sol";
+import "./lib/TickBitMap.sol";
+import "./lib/TickMath.sol";
+// import "./lib/Math.sol";
 
 
 contract UniswapV3Pool {
@@ -13,6 +16,11 @@ contract UniswapV3Pool {
     using Tick for mapping(int24 => Tick.Info);
     using Position for mapping(bytes32 => Position.Info);
     using Position for Position.Info;
+
+    // using Bitmap for Ticks
+    using TickBitmap for mapping(int16 => uint256);
+    mapping(int16 => uint256 ) public tickBitmap;
+
 
     int24 internal constant MIN_TICK = -887272;
     int24 internal constant MAX_TICK = -MIN_TICK;
@@ -81,9 +89,18 @@ contract UniswapV3Pool {
 
         if(amount <=  0) revert ZeroLiquidity();
 
-        ticks.update(lowertick,amount);
-        ticks.update(uppertick,amount);
+        bool flippedLower = ticks.update(lowertick,amount);
+        bool flippedUpper = ticks.update(uppertick,amount);
 
+       if (flippedLower) {
+            tickBitmap.flipTick(lowertick, 1);
+        }
+
+        if (flippedUpper) {
+            tickBitmap.flipTick(uppertick, 1);
+        }
+
+        
         Position.Info storage position = positions.get(owner,lowertick,uppertick);
 
         position.update(amount);
@@ -132,7 +149,7 @@ contract UniswapV3Pool {
             amount0,
             amount1,
             data
-    );
+        );
         if (balance1Before + uint256(amount1) < balance1())
             revert InsufficientInputAmount();
 

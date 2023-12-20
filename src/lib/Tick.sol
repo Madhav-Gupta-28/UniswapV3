@@ -13,7 +13,7 @@ library Tick{
         int24 tick,
         uint128 liquidityDelta
 
-    )internal {
+    )internal returns(bool flipped) {
         Tick.Info storage tickInfo = self[tick];
         uint128 liquidityBefore = tickInfo.liquidity;
         uint128 liquidityAfter = liquidityBefore + liquidityDelta;
@@ -21,6 +21,8 @@ library Tick{
         if(liquidityBefore == 0 ){
             tickInfo.initialized = true;
         }
+
+        flipped = (liquidityAfter == 0 ) != (liquidityBefore ==0);
 
         tickInfo.liquidity = liquidityAfter;
     }
