@@ -4,6 +4,8 @@ pragma solidity ^0.8.14;
 import "./Math.sol";
 
 library SwapMath {
+
+    
     function computeSwapStep(
         uint160 sqrtPriceCurrentX96,
         uint160 sqrtPriceTargetX96,
@@ -26,6 +28,23 @@ library SwapMath {
             amountRemaining,
             zeroForOne
         );
+
+        amountIn = zeroForOne ?  Math.calcAmount0Delta(
+            sqrtPriceCurrentX96,
+            sqrtPriceNextX96,
+            liquidity
+        ) : (
+            Math.calcAmount1Delta(sqrtPriceCurrentX96, sqrtPriceNextX96, liquidity)
+        );
+       
+        if (amountRemaining >= amountIn) sqrtPriceNextX96 = sqrtPriceTargetX96;
+        else
+            sqrtPriceNextX96 = Math.getNextSqrtPriceFromInput(
+                sqrtPriceCurrentX96,
+                liquidity,
+                amountRemaining,
+                zeroForOne
+            );
 
         amountIn = Math.calcAmount0Delta(
             sqrtPriceCurrentX96,

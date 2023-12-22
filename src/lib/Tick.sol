@@ -1,29 +1,45 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.14;
+import "./LiquidityMath.sol";
 
 
 library Tick{
     struct Info{
         bool initialized;
-        uint128 liquidity;
+        uint128 liquidityGross;  // total liquidity at a particular tick
+        uint128 liquidityNet;  // amount of liquidity address or substracted when tick is crossed
     }
 
     function update(
         mapping(int24 => Tick.Info) storage self,
         int24 tick,
-        uint128 liquidityDelta
+        uint128 liquidityDelta,
+        bool upper
 
     )internal returns(bool flipped) {
         Tick.Info storage tickInfo = self[tick];
-        uint128 liquidityBefore = tickInfo.liquidity;
-        uint128 liquidityAfter = liquidityBefore + liquidityDelta;
+        uint128 liquidityBefore = tickInfo.liquidityGross;
+        uint128 liquidityAfter = LiquidityMath.addLiquidity(liquidityBefore, liquidityDelta);
+
+        flipped =  ( liquidityAfter == 0 ) != (liquidityBefore == 0);
+
 
         if(liquidityBefore == 0 ){
             tickInfo.initialized = true;
         }
 
-        flipped = (liquidityAfter == 0 ) != (liquidityBefore ==0);
+        tickInfo.liquidityGross = liquidityAfter;
 
-        tickInfo.liquidity = liquidityAfter;
+        tickInfo.liquidityNet = upper ? int128(int256(tickInfo.liquidityNet) - liquidityDelta) :  int128(int256(tickInfo.liquidityNet) + liquidityDelta);
     }
+
+    function cross(mapping(int24 => Tick.Info) storage self, int24 tick)
+    internal
+    view
+    returns (int128 liquidityDelta)
+{
+    Tick.Info storage info = self[tick];
+    liquidityDelta = info.liquidityNet;
+}
+
 }
