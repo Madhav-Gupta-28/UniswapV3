@@ -11,8 +11,10 @@ import "./lib/TickMath.sol";
 import "./lib/Math.sol";
 import "./lib/SwapMath.sol";
 import "./lib/LiquidityMath.sol";
+import "./interfaces/IUniswapV3Pool.sol";
+import "./interfaces/IUniswapV3PoolDeployer.sol";
 
-contract UniswapV3Pool {
+contract UniswapV3Pool  is IUniswapV3Pool{
 
     using Tick for mapping(int24 => Tick.Info);
     using Position for mapping(bytes32 => Position.Info);
@@ -26,9 +28,11 @@ contract UniswapV3Pool {
     int24 internal constant MIN_TICK = -887272;
     int24 internal constant MAX_TICK = -MIN_TICK;
 
-    // Pool tokens, immutable
+    // Pool Params
+    address public immutable factory;
     address public immutable token0;
     address public immutable token1;
+    uint24 public immutable tickSpacing;
 
     // Here I am packing variable 
     struct Slot0{
@@ -37,13 +41,6 @@ contract UniswapV3Pool {
     }
 
     Slot0 public slot0;
-
-    // Struct for Storing Data for Callbacks
-    struct CallbackData{
-        address token0;
-        address token1;
-        address payer;
-    }
 
     struct SwapState{
         uint256 amountSpecifiedRemaining;
@@ -70,9 +67,17 @@ contract UniswapV3Pool {
 
     // Initialzing variables in the constructor
     constructor(address token0_ , address token1_ , uint160  sqrtPriceX96_ , int24 tick_){
-        token0  = token0_;
-        token1 = token1_;
-        slot0 = Slot0(sqrtPriceX96_,tick_);
+
+        (factory , token0, token1 , tickSpacing) = IUniswapV3PoolDeployer(msg.sender).parameters();
+    }
+
+
+    function initialize(uint160 sqrtPriceX96) public {
+        if (slot0.sqrtPriceX96 != 0) revert AlreadyInitialized();
+
+        int24 tick = TickMath.getTickAtSqrtRatio(sqrtPriceX96);
+
+        slot0 = Slot0({sqrtPriceX96: sqrtPriceX96, tick: tick});
     }
 
     // Errors
@@ -81,6 +86,7 @@ contract UniswapV3Pool {
     error InsufficientInputAmount();
     error InvalidPriceLimit();
     error NotEnoughLiquidity();
+    error AlreadyInitialized();
 
     // Events
     event Mint( address sender, address indexed owner, int24 indexed tickLower,int24 indexed tickUpper,uint128 amount,uint256 amount0,uint256 amount1  );
