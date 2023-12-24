@@ -19,7 +19,7 @@ library Tick{
     )internal returns(bool flipped) {
         Tick.Info storage tickInfo = self[tick];
         uint128 liquidityBefore = tickInfo.liquidityGross;
-        uint128 liquidityAfter = LiquidityMath.addLiquidity(liquidityBefore, liquidityDelta);
+        uint128 liquidityAfter = LiquidityMath.addLiquidity(liquidityBefore, int128(liquidityDelta));
 
         flipped =  ( liquidityAfter == 0 ) != (liquidityBefore == 0);
 
@@ -30,7 +30,7 @@ library Tick{
 
         tickInfo.liquidityGross = liquidityAfter;
 
-        tickInfo.liquidityNet = upper ? int128(int256(tickInfo.liquidityNet) - liquidityDelta) :  int128(int256(tickInfo.liquidityNet) + liquidityDelta);
+        tickInfo.liquidityNet = upper ? tickInfo.liquidityNet - liquidityDelta :  tickInfo.liquidityNet + liquidityDelta;
     }
 
     function cross(mapping(int24 => Tick.Info) storage self, int24 tick)
@@ -39,7 +39,7 @@ library Tick{
     returns (int128 liquidityDelta)
 {
     Tick.Info storage info = self[tick];
-    liquidityDelta = info.liquidityNet;
+    liquidityDelta = int128(info.liquidityNet);
 }
 
 }

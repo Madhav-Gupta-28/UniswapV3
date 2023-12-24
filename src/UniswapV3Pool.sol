@@ -50,6 +50,7 @@ contract UniswapV3Pool {
         uint256 amountCalculated;
         uint160 sqrtPriceX96;
         int24 tick;
+        uint128 liquidity;
     }
 
     struct StepState{
@@ -79,6 +80,7 @@ contract UniswapV3Pool {
     error ZeroLiquidity();
     error InsufficientInputAmount();
     error InvalidPriceLimit();
+    error NotEnoughLiquidity();
 
     // Events
     event Mint( address sender, address indexed owner, int24 indexed tickLower,int24 indexed tickUpper,uint128 amount,uint256 amount0,uint256 amount1  );
@@ -121,8 +123,8 @@ contract UniswapV3Pool {
 
 
 
-        bool flippedLower = ticks.update(lowertick,amount);
-        bool flippedUpper = ticks.update(uppertick,amount);
+        bool flippedLower = ticks.update(lowertick,amount,false);
+        bool flippedUpper = ticks.update(uppertick,amount,true);
 
        if (flippedLower) {
             tickBitmap.flipTick(lowertick, 1);
@@ -183,7 +185,8 @@ contract UniswapV3Pool {
             amountSpecifiedRemaining: amountSpecified,
             amountCalculated: 0,
             sqrtPriceX96: slot0_.sqrtPriceX96,
-            tick: slot0_.tick
+            tick: slot0_.tick,
+            liquidity : liquidity
         });
 
 
@@ -207,7 +210,6 @@ contract UniswapV3Pool {
             swapstate.amountCalculated += stepstate.amountOut;
             swapstate.tick = TickMath.getTickAtSqrtRatio(swapstate.sqrtPriceX96);
 
-        }
 
          if (swapstate.sqrtPriceX96 == stepstate.sqrtPriceNextX96) {
                 if (stepstate.initialized) {
@@ -227,7 +229,7 @@ contract UniswapV3Pool {
             } else if (swapstate.sqrtPriceX96 != stepstate.sqrtPriceStartX96) {
                 swapstate.tick = TickMath.getTickAtSqrtRatio(swapstate.sqrtPriceX96);
             }
-        };
+        }
 
 
 
