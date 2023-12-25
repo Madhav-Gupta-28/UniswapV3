@@ -70,6 +70,3 @@ library Path {
         tokenOut = path.toAddress(NEXT_OFFSET);
     }
 }
-
-
-}

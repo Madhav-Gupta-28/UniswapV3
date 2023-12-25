@@ -25,10 +25,13 @@ contract UniswapV3Factory is IUniswapV3PoolDeployer{
     // Mappings
     mapping(uint24 => bool) public tickSpacings; // Allowed TickSpacking mapping
     mapping(address => mapping(address => mapping(uint24 => address))) public pools;
+    mapping(uint24 => uint24) public fees;
+
+
 
     constructor() {
-        tickSpacings[10] = true;
-        tickSpacings[60] = true;
+        fees[500] = 10;
+        fees[300] = 60;
     }
 
     
@@ -55,9 +58,11 @@ contract UniswapV3Factory is IUniswapV3PoolDeployer{
             tickSpacing : tickSpacing
         });
 
-        pool = address(new UniswapV3Pool{
-            salt : keccak256(abi.encodePacked(tokenX,tokenY,tickSpacing))
-        }());
+        pool = address(
+            new UniswapV3Pool{
+                salt : keccak256(abi.encodePacked(tokenX,tokenY,tickSpacing))
+            }()
+        );
 
         delete parameters;
 
