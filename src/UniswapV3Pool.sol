@@ -66,7 +66,7 @@ contract UniswapV3Pool  is IUniswapV3Pool{
     mapping(bytes32 => Position.Info) public positions;
 
     // Initialzing variables in the constructor
-    constructor(address token0_ , address token1_ , uint160  sqrtPriceX96_ , int24 tick_){
+    constructor(){
 
         (factory , token0, token1 , tickSpacing) = IUniswapV3PoolDeployer(msg.sender).parameters();
     }
